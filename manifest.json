@@ -1,11 +1,17 @@
 {
   "manifest_version": 3,
   "name": "TikTok Music Overlay",
-  "version": "1.1.0",
+  "version": "1.0.1",
   "description": "Подгружает музыку из Избранного TikTok Studio и играет её на странице профиля.",
-  "permissions": ["storage", "scripting", "tabs"],
+  "permissions": ["storage", "webRequest", "scripting", "tabs"],
   "host_permissions": [
-    "https://www.tiktok.com/*"
+    "https://www.tiktok.com/*",
+    "https://*.tiktokcdn.com/*",
+    "https://*.tiktokcdn-us.com/*",
+    "https://*.tiktokcdn-eu.com/*",
+    "https://*.tiktokv.com/*",
+    "https://*.byteoversea.com/*",
+    "https://*.ibytedtos.com/*"
   ],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
