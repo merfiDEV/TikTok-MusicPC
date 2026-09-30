@@ -1,25 +1,215 @@
-.ttm-tab-btn { display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
-.ttm-tab-btn svg { width:18px; height:18px; }
-#ttm-overlay {
-  position: fixed; right: 24px; bottom: 24px; width: 360px; max-height: 70vh;
-  background: #1c1c1e; color: #fff; border-radius: 14px; z-index: 2147483000;
-  box-shadow: 0 10px 40px rgba(0,0,0,.55); display: none; flex-direction: column;
-  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; overflow: hidden;
+/* overlay.css — TikTok Music Overlay (встроенная вкладка) */
+
+/* ---- Кнопка вкладки "Музыка" в таб-баре профиля ---- */
+.ttm-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 4px;
+  white-space: nowrap;
+  transition: color .15s ease, opacity .15s ease;
 }
-#ttm-overlay.ttm-open { display: flex; }
-#ttm-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #333; }
-#ttm-head h3 { margin:0; font-size:15px; font-weight:600; }
-.ttm-close { background:none; border:none; color:#aaa; font-size:20px; cursor:pointer; line-height:1; }
-#ttm-now { padding:12px 14px; border-bottom:1px solid #333; }
-#ttm-title { font-size:13px; font-weight:600; margin-bottom:2px; word-break:break-all; }
-#ttm-author { font-size:11px; color:#999; }
-#ttm-audio { width:100%; margin-top:8px; }
-#ttm-list { list-style:none; margin:0; padding:0; overflow-y:auto; max-height:38vh; }
-#ttm-list li { padding:10px 14px; border-bottom:1px solid #2a2a2a; cursor:pointer; font-size:12px; display:flex; justify-content:space-between; gap:8px; }
-#ttm-list li:hover { background:#2a2a2c; }
-#ttm-list li.ttm-active { background:#3a2a4a; }
-#ttm-list .ttm-nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#ttm-empty { padding:18px 14px; color:#888; font-size:12px; text-align:center; }
-#ttm-foot { padding:8px 14px; display:flex; justify-content:space-between; border-top:1px solid #333; }
-#ttm-foot button { background:#333; color:#ddd; border:none; border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer; }
-#ttm-foot button:hover { background:#444; }
+.ttm-tab:hover { color: rgba(255, 255, 255, 0.95); }
+.ttm-tab[aria-selected="true"] {
+  color: #fff;
+  border-bottom: 2px solid #fff;
+  padding-bottom: 8px;
+}
+.ttm-tab svg { width: 1em; height: 1em; fill: currentColor; }
+.ttm-tab span { font-size: 18px; }
+
+/* ---- Секция "Музыка" (замена сетки видео/репостов) ---- */
+#ttm-section {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 0 96px; /* низ — запас под плеер */
+  color: #fff;
+}
+
+/* Шапка секции */
+#ttm-section .ttm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 16px;
+}
+#ttm-section .ttm-head h3 {
+  margin: 0; font-size: 20px; font-weight: 700;
+}
+#ttm-section .ttm-head .ttm-count {
+  color: rgba(255,255,255,.6); font-size: 13px; margin-left: 8px; font-weight: 400;
+}
+#ttm-section .ttm-actions { display: flex; gap: 8px; }
+#ttm-section .ttm-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.04);
+  color: #fff; font-size: 13px; font-weight: 600;
+  border-radius: 6px; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+#ttm-section .ttm-btn:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.28); }
+#ttm-section .ttm-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* Пустое состояние */
+#ttm-section .ttm-empty {
+  display: none;
+  padding: 64px 16px;
+  text-align: center;
+  color: rgba(255,255,255,.5);
+  font-size: 14px;
+}
+#ttm-section.is-empty .ttm-empty { display: block; }
+
+/* Сетка карточек */
+#ttm-section .ttm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+#ttm-section .ttm-card {
+  position: relative;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,.03);
+  padding: 8px;
+  transition: background .15s ease, transform .15s ease;
+}
+#ttm-section .ttm-card:hover { background: rgba(255,255,255,.07); }
+#ttm-section .ttm-card.is-playing {
+  background: rgba(254,44,85,.12);
+  box-shadow: inset 0 0 0 1px rgba(254,44,85,.55);
+}
+#ttm-section .ttm-cover {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #16181d;
+}
+#ttm-section .ttm-cover img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+#ttm-section .ttm-cover .ttm-play-badge {
+  position: absolute; right: 8px; bottom: 8px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+  opacity: 0; transform: scale(.85);
+  transition: opacity .15s ease, transform .15s ease;
+}
+#ttm-section .ttm-card:hover .ttm-play-badge,
+#ttm-section .ttm-card.is-playing .ttm-play-badge {
+  opacity: 1; transform: scale(1);
+}
+#ttm-section .ttm-play-badge svg { width: 16px; height: 16px; fill: #fff; }
+#ttm-section .ttm-card.is-playing .ttm-play-badge { background: #fe2c55; }
+
+#ttm-section .ttm-meta {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+#ttm-section .ttm-title {
+  font-size: 14px; font-weight: 600; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ttm-section .ttm-author {
+  font-size: 12px; color: rgba(255,255,255,.55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- Полоса-плеер (закреплена внизу) ---- */
+#ttm-player {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: rgba(22,24,35,.96);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: #fff;
+  font-size: 13px;
+}
+#ttm-player.is-open { display: flex; }
+
+#ttm-player .ttm-p-controls { display: flex; align-items: center; gap: 8px; }
+#ttm-player .ttm-p-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; cursor: pointer; background: transparent;
+  transition: background .15s ease;
+}
+#ttm-player .ttm-p-btn:hover { background: rgba(255,255,255,.10); }
+#ttm-player .ttm-p-btn.ttm-p-main {
+  background: #fe2c55; width: 40px; height: 40px;
+}
+#ttm-player .ttm-p-btn.ttm-p-main:hover { background: #ff4d70; }
+#ttm-player .ttm-p-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+#ttm-player .ttm-p-meta {
+  min-width: 0;
+  width: 240px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+#ttm-player .ttm-p-title {
+  font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ttm-player .ttm-p-author {
+  font-size: 12px; color: rgba(255,255,255,.55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+#ttm-player .ttm-p-seek {
+  flex: 1;
+  display: flex; align-items: center; gap: 10px;
+}
+#ttm-player .ttm-p-time {
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,.55); font-size: 12px; min-width: 40px; text-align: center;
+}
+#ttm-player .ttm-p-bar {
+  flex: 1; height: 4px;
+  background: rgba(255,255,255,.14);
+  border-radius: 2px;
+  position: relative; cursor: pointer;
+}
+#ttm-player .ttm-p-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: #fe2c55; border-radius: 2px;
+  width: 0%;
+}
+#ttm-player .ttm-p-knob {
+  position: absolute; top: 50%;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; transform: translate(-50%, -50%);
+  left: 0%;
+  box-shadow: 0 0 6px rgba(0,0,0,.5);
+  opacity: 0; transition: opacity .15s ease;
+}
+#ttm-player .ttm-p-bar:hover .ttm-p-knob { opacity: 1; }
+
+#ttm-player .ttm-p-vol {
+  display: flex; align-items: center; gap: 8px;
+  color: rgba(255,255,255,.7);
+}
+#ttm-player .ttm-p-vol svg { width: 16px; height: 16px; fill: currentColor; }
+#ttm-player .ttm-p-vol input[type="range"] {
+  width: 100px; accent-color: #fe2c55;
+}
+
+/* Скрываем родной аудио-элемент */
+#ttm-audio-native { display: none; }

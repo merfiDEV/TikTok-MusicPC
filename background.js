@@ -30,7 +30,9 @@ function findTrackIdx(list, track) {
 }
 
 // Возвращает 'added' | 'updated' | 'skip'
-function upsertPreserveOrder(list, track) {
+// prependNew = true → новые треки кладём в начало (свежие сверху).
+// На первом фетче (пустое хранилище) сохраняем порядок API — push.
+function upsertPreserveOrder(list, track, prependNew) {
   const idx = findTrackIdx(list, track);
   if (idx >= 0) {
     const cur = list[idx];
@@ -40,11 +42,12 @@ function upsertPreserveOrder(list, track) {
       cur.author !== track.author ||
       cur.cover !== track.cover;
     if (!changed) return 'skip';
-    // сохраняем исходную позицию — порядок из Studio не сбивается
+    // сохраняем исходную позицию
     list[idx] = { ...cur, ...track, foundAt: cur.foundAt || track.foundAt };
     return 'updated';
   }
-  list.push(track);
+  if (prependNew) list.unshift(track);
+  else list.push(track);
   return 'added';
 }
 
@@ -54,8 +57,9 @@ async function saveOne(track) {
   return serialize(async () => {
     const data = await chrome.storage.local.get(STORE_KEY);
     const list = data[STORE_KEY] || [];
-    if (upsertPreserveOrder(list, track) === 'skip') return;
-    if (list.length > 500) list.splice(0, list.length - 500);
+    const prepend = list.length > 0; // при непустом хранилище — новые наверх
+    if (upsertPreserveOrder(list, track, prepend) === 'skip') return;
+    if (list.length > 500) list.splice(500); // обрезаем хвост, а не голову
     await chrome.storage.local.set({ [STORE_KEY]: list });
     notifyTabs();
   });
@@ -65,13 +69,17 @@ async function saveMany(tracks) {
   return serialize(async () => {
     const data = await chrome.storage.local.get(STORE_KEY);
     const list = data[STORE_KEY] || [];
+    const hadItems = list.length > 0;
     let changed = false;
-    for (const t of tracks) {
+    // При prepend каждый unshift разворачивает порядок — итерируем с конца,
+    // чтобы итоговый порядок совпал с порядком в массиве tracks.
+    const src = hadItems ? tracks.slice().reverse() : tracks;
+    for (const t of src) {
       if (!t || !t.url) continue;
-      if (upsertPreserveOrder(list, t) !== 'skip') changed = true;
+      if (upsertPreserveOrder(list, t, hadItems) !== 'skip') changed = true;
     }
     if (changed) {
-      if (list.length > 500) list.splice(0, list.length - 500);
+      if (list.length > 500) list.splice(500);
       await chrome.storage.local.set({ [STORE_KEY]: list });
       notifyTabs();
     }
