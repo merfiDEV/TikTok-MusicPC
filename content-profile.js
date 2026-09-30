@@ -14,7 +14,8 @@
     refresh: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M40 8a1 1 0 0 0-1 1v6.5A16 16 0 0 0 8.87 19.4a1 1 0 0 0 1.9.62A14 14 0 0 1 37 17.1V23a1 1 0 0 0 2 0V9a1 1 0 0 0-1-1ZM8 40a1 1 0 0 0 1-1v-6.5A16 16 0 0 0 39.13 28.6a1 1 0 0 0-1.9-.62A14 14 0 0 1 11 30.9V25a1 1 0 0 0-2 0v14a1 1 0 0 0 1 1Z"/></svg>',
     trash: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M18 4a1 1 0 0 0-1 1v2H8a1 1 0 0 0 0 2h1.5l2.6 28.7A3 3 0 0 0 15.1 40h17.8a3 3 0 0 0 3-2.3l2.6-28.7H40a1 1 0 0 0 0-2H31V5a1 1 0 0 0-1-1H18Zm3 4V6h6v2h-6Zm-8.5 2h24.9l-2.5 28.4a1 1 0 0 1-1 .6H15.1a1 1 0 0 1-1-.6L11.5 10Z"/></svg>',
     volume: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M24 6a1 1 0 0 0-1.62-.78L11.6 13H6a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h5.6l10.78 7.78A1 1 0 0 0 24 42V6ZM22 9.16v29.68L12.62 32H7V16h5.62L22 9.16ZM31.5 16.5a1 1 0 0 0-1.41 1.41 8.5 8.5 0 0 1 0 12.18 1 1 0 1 0 1.41 1.41 10.5 10.5 0 0 0 0-15Zm4.24-4.24a1 1 0 0 0-1.41 1.41 14.5 14.5 0 0 1 0 20.66 1 1 0 1 0 1.41 1.41 16.5 16.5 0 0 0 0-23.48Z"/></svg>',
-    close: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M10.7 10.7a1 1 0 0 1 1.4 0L24 22.59 35.9 10.7a1 1 0 1 1 1.4 1.41L25.41 24l11.9 11.9a1 1 0 0 1-1.42 1.4L24 25.41 12.1 37.3a1 1 0 0 1-1.4-1.42L22.59 24 10.7 12.1a1 1 0 0 1 0-1.4Z"/></svg>'
+    close: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M10.7 10.7a1 1 0 0 1 1.4 0L24 22.59 35.9 10.7a1 1 0 1 1 1.4 1.41L25.41 24l11.9 11.9a1 1 0 0 1-1.42 1.4L24 25.41 12.1 37.3a1 1 0 0 1-1.4-1.42L22.59 24 10.7 12.1a1 1 0 0 1 0-1.4Z"/></svg>',
+    download: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M24 5a1 1 0 0 1 1 1v22.59l6.29-6.3a1 1 0 1 1 1.42 1.42l-8 8a1 1 0 0 1-1.42 0l-8-8a1 1 0 1 1 1.42-1.42L23 28.59V6a1 1 0 0 1 1-1ZM9 34a1 1 0 0 1 1 1v4h28v-4a1 1 0 1 1 2 0v5a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z"/></svg>'
   };
 
   const state = {
@@ -157,7 +158,11 @@
       const card = document.createElement('div');
       card.className = 'ttm-card';
       card.innerHTML = [
-        '<div class="ttm-cover"><img alt="" loading="lazy"><div class="ttm-play-badge">' + SVG.play + '</div></div>',
+        '<div class="ttm-cover">',
+          '<img alt="" loading="lazy">',
+          '<div class="ttm-dl" title="Скачать">' + SVG.download + '</div>',
+          '<div class="ttm-play-badge">' + SVG.play + '</div>',
+        '</div>',
         '<div class="ttm-meta"><div class="ttm-title"></div><div class="ttm-author"></div></div>'
       ].join('');
       gridEl.appendChild(card);
@@ -187,6 +192,35 @@
         if (i === state.currentIdx && !audio.paused) audio.pause();
         else playTrack(i);
       };
+      const dl = card.querySelector('.ttm-dl');
+      dl.onclick = (e) => {
+        e.stopPropagation();
+        downloadTrack(t, dl);
+      };
+    }
+  }
+
+  async function downloadTrack(t, btn) {
+    if (!t || !t.url) return;
+    btn.classList.add('is-loading');
+    try {
+      const res = await fetch(t.url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const ext = /mpeg|mp3/i.test(blob.type) ? 'mp3' : 'm4a';
+      const base = (t.title || t.author || t.id || 'track').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = base + '.' + ext;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    } catch (err) {
+      console.log('[TTM] download err', err);
+      btn.classList.add('is-error');
+      setTimeout(() => btn.classList.remove('is-error'), 1500);
+    } finally {
+      btn.classList.remove('is-loading');
     }
   }
 

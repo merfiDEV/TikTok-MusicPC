@@ -117,6 +117,28 @@
 #ttm-section .ttm-play-badge svg { width: 16px; height: 16px; fill: #fff; }
 #ttm-section .ttm-card.is-playing .ttm-play-badge { background: #fe2c55; }
 
+/* Кнопка "Скачать" в правом верхнем углу обложки */
+#ttm-section .ttm-dl {
+  position: absolute; right: 8px; top: 8px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+  opacity: 0; transform: scale(.85);
+  transition: opacity .15s ease, transform .15s ease, background .15s ease;
+  cursor: pointer;
+}
+#ttm-section .ttm-card:hover .ttm-dl { opacity: 1; transform: scale(1); }
+#ttm-section .ttm-dl:hover { background: rgba(254,44,85,.85); }
+#ttm-section .ttm-dl svg { width: 15px; height: 15px; fill: #fff; }
+#ttm-section .ttm-dl.is-loading { opacity: 1; background: rgba(0,0,0,.75); pointer-events: none; }
+#ttm-section .ttm-dl.is-loading svg { animation: ttm-spin 1s linear infinite; }
+#ttm-section .ttm-dl.is-error { opacity: 1; background: rgba(220,40,40,.9); }
+@keyframes ttm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 #ttm-section .ttm-meta {
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
 }
