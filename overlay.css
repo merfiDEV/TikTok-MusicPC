@@ -1,0 +1,25 @@
+.ttm-tab-btn { display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+.ttm-tab-btn svg { width:18px; height:18px; }
+#ttm-overlay {
+  position: fixed; right: 24px; bottom: 24px; width: 360px; max-height: 70vh;
+  background: #1c1c1e; color: #fff; border-radius: 14px; z-index: 2147483000;
+  box-shadow: 0 10px 40px rgba(0,0,0,.55); display: none; flex-direction: column;
+  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; overflow: hidden;
+}
+#ttm-overlay.ttm-open { display: flex; }
+#ttm-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #333; }
+#ttm-head h3 { margin:0; font-size:15px; font-weight:600; }
+.ttm-close { background:none; border:none; color:#aaa; font-size:20px; cursor:pointer; line-height:1; }
+#ttm-now { padding:12px 14px; border-bottom:1px solid #333; }
+#ttm-title { font-size:13px; font-weight:600; margin-bottom:2px; word-break:break-all; }
+#ttm-author { font-size:11px; color:#999; }
+#ttm-audio { width:100%; margin-top:8px; }
+#ttm-list { list-style:none; margin:0; padding:0; overflow-y:auto; max-height:38vh; }
+#ttm-list li { padding:10px 14px; border-bottom:1px solid #2a2a2a; cursor:pointer; font-size:12px; display:flex; justify-content:space-between; gap:8px; }
+#ttm-list li:hover { background:#2a2a2c; }
+#ttm-list li.ttm-active { background:#3a2a4a; }
+#ttm-list .ttm-nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#ttm-empty { padding:18px 14px; color:#888; font-size:12px; text-align:center; }
+#ttm-foot { padding:8px 14px; display:flex; justify-content:space-between; border-top:1px solid #333; }
+#ttm-foot button { background:#333; color:#ddd; border:none; border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer; }
+#ttm-foot button:hover { background:#444; }
