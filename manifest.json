@@ -13,19 +13,33 @@
     "https://*.byteoversea.com/*",
     "https://*.ibytedtos.com/*"
   ],
-  "background": { "service_worker": "background.js" },
+  "background": { "service_worker": "src/background.js" },
   "content_scripts": [
     {
       "matches": ["https://www.tiktok.com/@*"],
-      "js": ["content-profile.js"],
-      "css": ["overlay.css"],
+      "js": ["src/content-profile.js"],
+      "css": ["src/overlay.css"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://www.tiktok.com/tiktokstudio/*"],
-      "js": ["content-studio.js"],
+      "js": ["src/content-studio.js"],
       "run_at": "document_idle"
     }
   ],
-  "action": { "default_title": "TikTok Music Overlay" }
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "TikTok Music Overlay",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
 }
