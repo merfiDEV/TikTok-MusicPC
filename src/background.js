@@ -1,4 +1,4 @@
-// background.js — хранилище треков TikTok Music Overlay
+// background.js - хранилище треков TikTok Music Overlay
 const STORE_KEY = 'ttm_tracks';
 
 async function notifyTabs() {
@@ -31,7 +31,7 @@ function findTrackIdx(list, track) {
 
 // Возвращает 'added' | 'updated' | 'skip'
 // prependNew = true → новые треки кладём в начало (свежие сверху).
-// На первом фетче (пустое хранилище) сохраняем порядок API — push.
+// На первом фетче (пустое хранилище) сохраняем порядок API - push.
 function upsertPreserveOrder(list, track, prependNew) {
   const idx = findTrackIdx(list, track);
   if (idx >= 0) {
@@ -57,7 +57,7 @@ async function saveOne(track) {
   return serialize(async () => {
     const data = await chrome.storage.local.get(STORE_KEY);
     const list = data[STORE_KEY] || [];
-    const prepend = list.length > 0; // при непустом хранилище — новые наверх
+    const prepend = list.length > 0; // при непустом хранилище - новые наверх
     if (upsertPreserveOrder(list, track, prepend) === 'skip') return;
     if (list.length > 500) list.splice(500); // обрезаем хвост, а не голову
     await chrome.storage.local.set({ [STORE_KEY]: list });
@@ -71,7 +71,7 @@ async function saveMany(tracks) {
     const list = data[STORE_KEY] || [];
     const hadItems = list.length > 0;
     let changed = false;
-    // При prepend каждый unshift разворачивает порядок — итерируем с конца,
+    // При prepend каждый unshift разворачивает порядок - итерируем с конца,
     // чтобы итоговый порядок совпал с порядком в массиве tracks.
     const src = hadItems ? tracks.slice().reverse() : tracks;
     for (const t of src) {
@@ -86,7 +86,7 @@ async function saveMany(tracks) {
   });
 }
 
-// Прямые аудио-URL из Studio (только как дополнение — их лучше в конец)
+// Прямые аудио-URL из Studio (только как дополнение - их лучше в конец)
 const AUDIO_MIME_RE = /mime_type=audio/i;
 const JUNK_RE = /(browser-settings|zoomcover|\.avif|\.jpe?g|\.png|\.webp|\.gif|\.svg|\.css|\.js|\.json|\.html|\.m3u8)/i;
 chrome.webRequest.onBeforeRequest.addListener(

@@ -1,4 +1,4 @@
-/* overlay.css — TikTok Music Overlay (встроенная вкладка) */
+/* overlay.css - TikTok Music Overlay (встроенная вкладка) */
 
 /* ---- Кнопка вкладки "Музыка" в таб-баре профиля ---- */
 .ttm-tab {
@@ -27,7 +27,7 @@
 #ttm-section {
   width: 100%;
   box-sizing: border-box;
-  padding: 16px 0 96px; /* низ — запас под плеер */
+  padding: 16px 0 96px; /* низ - запас под плеер */
   color: #fff;
 }
 

@@ -1,4 +1,4 @@
-// content-studio.js — TikTok Studio: тянет треки из 'Избранного' через API
+// content-studio.js - TikTok Studio: тянет треки из 'Избранного' через API
 (function () {
   if (window.__ttmStudioLoaded) return;
   window.__ttmStudioLoaded = true;

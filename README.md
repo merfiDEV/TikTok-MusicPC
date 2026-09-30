@@ -1,6 +1,6 @@
 # TikTok Music Overlay
 
-Chrome-расширение (MV3), которое добавляет на страницу профиля TikTok **встроенную вкладку «Музыка»** — плеер для треков, сохранённых в «Избранном» в TikTok Studio. В ПК-версии TikTok такой вкладки нет.
+Chrome-расширение (MV3), которое добавляет на страницу профиля TikTok **встроенную вкладку «Музыка»** - плеер для треков, сохранённых в «Избранном» в TikTok Studio. В ПК-версии TikTok такой вкладки нет.
 
 ---
 
@@ -21,7 +21,7 @@ Chrome-расширение (MV3), которое добавляет на стр
 2. **Загрузить распакованное расширение** → выбрать корень репозитория.
 3. Открыть `https://www.tiktok.com/@<твой_ник>`.
 4. После изменений кода: ⟳ в `chrome://extensions` → F5 на странице TikTok.
-   > Если в консоли `Extension context invalidated` — просто перезагрузи вкладку.
+   > Если в консоли `Extension context invalidated` - просто перезагрузи вкладку.
 
 ---
 
@@ -53,9 +53,9 @@ GET https://www.tiktok.com/api/user/collect/music_list/
     &aid=1988
 ```
 
-- `credentials: 'include'` обязателен — эндпоинт требует сессионные cookie.
+- `credentials: 'include'` обязателен - эндпоинт требует сессионные cookie.
 - Пагинация: ответ содержит `cursor` и `hasMore`. Идём в цикле, пока `hasMore === true`.
-- `secUid` пользователя: `MS4wLjABAAAAmhZ9pycz8B_BSMsNk3jFyxFwD8ONWmTbsXUScjDM5uHJahdPOaahwXZwgbyDmRdo` (это для `@ygandosheni`, у других — свой).
+- `secUid` пользователя: `MS4wLjABAAAAmhZ9pycz8B_BSMsNk3jFyxFwD8ONWmTbsXUScjDM5uHJahdPOaahwXZwgbyDmRdo` (это для `@ygandosheni`, у других - свой).
 
 #### Ответ
 
@@ -72,7 +72,7 @@ GET https://www.tiktok.com/api/user/collect/music_list/
       },
       "music": {
         "id": "7671774088888716062",
-        "title": "original sound",        // часто "original sound" — бесполезно
+        "title": "original sound",        // часто "original sound" - бесполезно
         "authorName": "Lindsey °❀⋆.ೃ࿔*:･",
         "coverMedium": "https://p16-common-sign.tiktokcdn.com/...",  // может быть пустым
         "coverThumb":  "https://p19-common-sign.tiktokcdn.com/...",
@@ -107,11 +107,11 @@ GET https://www.tiktok.com/api/user/collect/music_list/
 ### ⚠️ Ограничения API (важно!)
 
 1. **Нет сортировки.** API не принимает параметр сортировки и не возвращает дату добавления.
-   Проверены варианты `sortType=1|2`, `cursor_desc=1`, `sort=create_time` — все возвращают **тот же порядок** и **тот же набор полей**.
+   Проверены варианты `sortType=1|2`, `cursor_desc=1`, `sort=create_time` - все возвращают **тот же порядок** и **тот же набор полей**.
 
-2. **Порядок API = порядок в UI Studio.** Проверено сравнением первых 10 `id` из DOM панели «Избранное» и из ответа API — совпадают 1:1. Studio **не пересортировывает**.
+2. **Порядок API = порядок в UI Studio.** Проверено сравнением первых 10 `id` из DOM панели «Избранное» и из ответа API - совпадают 1:1. Studio **не пересортировывает**.
 
-   → Следствие: «свежие сверху» воспроизвести нельзя, потому что сами TikTok-данные не содержат времени. Единственный корректный порядок — тот, что отдаёт API.
+   → Следствие: «свежие сверху» воспроизвести нельзя, потому что сами TikTok-данные не содержат времени. Единственный корректный порядок - тот, что отдаёт API.
 
 3. **`playUrl` истекает.** Это подписанный URL с `x-expires` (обычно ~24 часа). Сохранённые ссылки через день перестают играть → нужен периодический перезапрос списка, чтобы обновить `playUrl` на месте (дедуп по `id`).
 
@@ -139,35 +139,35 @@ type Track = {
 };
 ```
 
-Лимит — **500 треков** (обрезается хвост).
+Лимит - **500 треков** (обрезается хвост).
 
 ### Очередь записи (background.js)
 
-`serialize(fn)` — все записи в `chrome.storage.local` идут через одну promise-цепочку. Без этого параллельные `saveOne` делают `read-modify-write` гонкой и перетирают друг друга.
+`serialize(fn)` - все записи в `chrome.storage.local` идут через одну promise-цепочку. Без этого параллельные `saveOne` делают `read-modify-write` гонкой и перетирают друг друга.
 
 `upsertPreserveOrder(list, track)`:
-- ищет трек по `id` (fallback — по `url`);
-- если найден и что-то изменилось — **обновляет на месте** (не перескакивает в конец, чтобы обновлённый `playUrl` не сбивал порядок);
-- если не найден — `push` в конец.
+- ищет трек по `id` (fallback - по `url`);
+- если найден и что-то изменилось - **обновляет на месте** (не перескакивает в конец, чтобы обновлённый `playUrl` не сбивал порядок);
+- если не найден - `push` в конец.
 
-> ⚠️ **Не используй `unshift`** для новых треков — при поштучной отправке из `content-profile.js` порядок переворачивается.
+> ⚠️ **Не используй `unshift`** для новых треков - при поштучной отправке из `content-profile.js` порядок переворачивается.
 
 ### Обмен сообщениями
 
 | Сообщение             | Направление       | Payload                    | Ответ |
 |-----------------------|-------------------|----------------------------|-------|
-| `TTM_GET_TRACKS`     | content → bg      | —                          | `{ tracks: Track[] }` |
-| `TTM_CLEAR_TRACKS`   | content → bg      | —                          | `{ ok: true }` |
+| `TTM_GET_TRACKS`     | content → bg      | -                          | `{ tracks: Track[] }` |
+| `TTM_CLEAR_TRACKS`   | content → bg      | -                          | `{ ok: true }` |
 | `TTM_SAVE_MANY`      | content → bg      | `{ tracks: Track[] }`     | `{ ok: true }` |
 | `TTM_SAVE_MANUAL`    | content → bg      | `{ track: Track }`        | `{ ok: true }` |
-| `TTM_TRACKS_UPDATED` | bg → all tabs     | —                          | — |
+| `TTM_TRACKS_UPDATED` | bg → all tabs     | -                          | - |
 
 ### UI (content-profile.js)
 
-- `buildSection()` — секция со сеткой карточек.
-- `buildPlayer()` — закреплённый снизу плеер, живёт в `document.body`.
-- `injectTab()` — добавляет `<p role="tab">` в таб-бар профиля (`div[class*="DivVideoFeedTab"]`).
-- `showMusicSection()` / `hideMusicSection()` — прячут родной `div[class*="DivThreeColumnContainer"]` и показывают свою секцию (и наоборот).
+- `buildSection()` - секция со сеткой карточек.
+- `buildPlayer()` - закреплённый снизу плеер, живёт в `document.body`.
+- `injectTab()` - добавляет `<p role="tab">` в таб-бар профиля (`div[class*="DivVideoFeedTab"]`).
+- `showMusicSection()` / `hideMusicSection()` - прячут родной `div[class*="DivThreeColumnContainer"]` и показывают свою секцию (и наоборот).
 - `MutationObserver` на `document.body` возвращает вкладку при SPA-пересоздании DOM.
 
 ### Селекторы TikTok (могут ломаться при редизайне)
@@ -183,7 +183,7 @@ type Track = {
 
 ## Известные ограничения
 
-- **Сортировка «как в Studio»** технически невозможна — API не отдаёт время добавления (см. выше).
+- **Сортировка «как в Studio»** технически невозможна - API не отдаёт время добавления (см. выше).
 - **`playUrl` протухает** через ~24 ч. Нужно периодически открывать профиль/жать «Обновить», чтобы перезаписать ссылки.
 - **Публикация в Chrome Web Store** с кнопкой «Скачать» невозможна: магазин запрещает расширения, качающие аудио с TikTok/YouTube/VK. Для публикации надо убрать кнопку.
 
@@ -191,4 +191,4 @@ type Track = {
 
 ## Лицензия
 
-Apache License 2.0 — см. [LICENSE](LICENSE).
+Apache License 2.0 - см. [LICENSE](LICENSE).

@@ -1,4 +1,4 @@
-// content-profile.js — встроенная вкладка "Музыка" на странице https://www.tiktok.com/@*
+// content-profile.js - встроенная вкладка "Музыка" на странице https://www.tiktok.com/@*
 (function () {
   if (window.__ttmProfileLoaded) return;
   window.__ttmProfileLoaded = true;
@@ -78,7 +78,7 @@
         '<div class="ttm-p-btn" id="ttm-p-next" title="Вперёд">' + SVG.next + '</div>',
       '</div>',
       '<div class="ttm-p-meta">',
-        '<div class="ttm-p-title" id="ttm-p-title">—</div>',
+        '<div class="ttm-p-title" id="ttm-p-title">-</div>',
         '<div class="ttm-p-author" id="ttm-p-author"></div>',
       '</div>',
       '<div class="ttm-p-seek">',
@@ -181,7 +181,7 @@
       const author = (t.author || '').trim();
       if (!title || /^original sound$/i.test(title)) title = author || ('Трек ' + (i + 1));
       card.querySelector('.ttm-title').textContent = title;
-      // Автор — не дублируем, если совпадает с заголовком
+      // Автор - не дублируем, если совпадает с заголовком
       card.querySelector('.ttm-author').textContent = (author && author !== title) ? author : '';
       const active = i === state.currentIdx;
       card.classList.toggle('is-playing', active);
@@ -294,7 +294,7 @@
     videoTab.parentElement.appendChild(btn);
 
     // слушаем клики на родные вкладки, чтобы скрыть нашу секцию
-    // (флаг на элементе — защита от дублирования при реинжекте)
+    // (флаг на элементе - защита от дублирования при реинжекте)
     if (!bar.__ttmClickListener) {
       bar.__ttmClickListener = true;
       bar.addEventListener('click', (e) => {
@@ -406,12 +406,12 @@
       reInjectTimer = null;
       const onProfile = /^\/@[^/]+(\/|$)/.test(location.pathname);
       if (!onProfile) {
-        // ушли с профиля — гасим плеер и прячем нашу секцию
+        // ушли с профиля - гасим плеер и прячем нашу секцию
         if (playerEl) playerEl.classList.remove('is-open');
         if (audio && !audio.paused) audio.pause();
         return;
       }
-      // Если таб-бар профиля есть, а нашей кнопки нет — инжектим заново
+      // Если таб-бар профиля есть, а нашей кнопки нет - инжектим заново
       const bar = findVideoTabBar();
       const ourTab = document.querySelector('.ttm-tab');
       if (bar && !ourTab) {
