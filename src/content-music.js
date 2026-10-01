@@ -38,12 +38,23 @@
         if (mm) secUid = mm[1];
       }
       if (!secUid) return null;
-      const url = '/api/user/collect/music_list/?secUid=' + encodeURIComponent(secUid)
-        + '&appId=1988&cursor=0&count=50&aid=1988';
-      const res = await fetch(url, { credentials: 'include' });
-      const data = await res.json();
-      const ids = (data.musicList || []).map(it => it.music && it.music.id);
-      return ids.includes(String(musicId));
+      // count > 20 сервер не принимает (вернёт пустой список), поэтому пагинируем по 20.
+      // Защитный лимит: 50 страниц = 1000 треков.
+      const target = String(musicId);
+      let cursor = 0;
+      for (let page = 0; page < 50; page++) {
+        const url = '/api/user/collect/music_list/?secUid=' + encodeURIComponent(secUid)
+          + '&appId=1988&cursor=' + cursor + '&count=20&aid=1988';
+        const res = await fetch(url, { credentials: 'include' });
+        const data = await res.json();
+        const list = data.musicList || [];
+        for (const it of list) {
+          if (it.music && String(it.music.id) === target) return true;
+        }
+        cursor = data.cursor;
+        if (!data.hasMore) break;
+      }
+      return false;
     } catch (e) {
       console.log('[TTM] isInFavorites err', e);
       return null;
