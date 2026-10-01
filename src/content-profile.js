@@ -15,14 +15,17 @@
     trash: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M18 4a1 1 0 0 0-1 1v2H8a1 1 0 0 0 0 2h1.5l2.6 28.7A3 3 0 0 0 15.1 40h17.8a3 3 0 0 0 3-2.3l2.6-28.7H40a1 1 0 0 0 0-2H31V5a1 1 0 0 0-1-1H18Zm3 4V6h6v2h-6Zm-8.5 2h24.9l-2.5 28.4a1 1 0 0 1-1 .6H15.1a1 1 0 0 1-1-.6L11.5 10Z"/></svg>',
     volume: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M24 6a1 1 0 0 0-1.62-.78L11.6 13H6a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h5.6l10.78 7.78A1 1 0 0 0 24 42V6ZM22 9.16v29.68L12.62 32H7V16h5.62L22 9.16ZM31.5 16.5a1 1 0 0 0-1.41 1.41 8.5 8.5 0 0 1 0 12.18 1 1 0 1 0 1.41 1.41 10.5 10.5 0 0 0 0-15Zm4.24-4.24a1 1 0 0 0-1.41 1.41 14.5 14.5 0 0 1 0 20.66 1 1 0 1 0 1.41 1.41 16.5 16.5 0 0 0 0-23.48Z"/></svg>',
     close: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M10.7 10.7a1 1 0 0 1 1.4 0L24 22.59 35.9 10.7a1 1 0 1 1 1.4 1.41L25.41 24l11.9 11.9a1 1 0 0 1-1.42 1.4L24 25.41 12.1 37.3a1 1 0 0 1-1.4-1.42L22.59 24 10.7 12.1a1 1 0 0 1 0-1.4Z"/></svg>',
-    download: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M24 5a1 1 0 0 1 1 1v22.59l6.29-6.3a1 1 0 1 1 1.42 1.42l-8 8a1 1 0 0 1-1.42 0l-8-8a1 1 0 1 1 1.42-1.42L23 28.59V6a1 1 0 0 1 1-1ZM9 34a1 1 0 0 1 1 1v4h28v-4a1 1 0 1 1 2 0v5a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z"/></svg>'
+    download: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M24 5a1 1 0 0 1 1 1v22.59l6.29-6.3a1 1 0 1 1 1.42 1.42l-8 8a1 1 0 0 1-1.42 0l-8-8a1 1 0 1 1 1.42-1.42L23 28.59V6a1 1 0 0 1 1-1ZM9 34a1 1 0 0 1 1 1v4h28v-4a1 1 0 1 1 2 0v5a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z"/></svg>',
+    search: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M21 6a15 15 0 1 0 9.23 26.82l7.48 7.47a1 1 0 0 0 1.41-1.41l-7.47-7.48A15 15 0 0 0 21 6Zm-13 15a13 13 0 1 1 26 0 13 13 0 0 1-26 0Z"/></svg>',
+    clear: '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M14.7 14.7a1 1 0 0 1 1.4 0L24 22.59l7.9-7.9a1 1 0 1 1 1.4 1.42L25.41 24l7.9 7.9a1 1 0 0 1-1.42 1.4L24 25.41l-7.9 7.9a1 1 0 0 1-1.4-1.42L22.59 24l-7.9-7.9a1 1 0 0 1 0-1.4Z"/></svg>'
   };
 
   const state = {
     tracks: [],
     currentIdx: -1,
     playing: false,
-    showSection: false
+    showSection: false,
+    query: ''     // строка поиска по названию/автору
   };
 
   // ---- секция и плеер ----
@@ -49,6 +52,11 @@
     sectionEl.innerHTML = [
       '<div class="ttm-head">',
         '<h3>Музыка<span class="ttm-count" id="ttm-count"></span></h3>',
+        '<div class="ttm-search">',
+          '<span class="ttm-search-icon">' + SVG.search + '</span>',
+          '<input type="text" id="ttm-search-input" placeholder="Поиск по названию или автору" autocomplete="off">',
+          '<button class="ttm-search-clear" id="ttm-search-clear" title="Очистить">' + SVG.clear + '</button>',
+        '</div>',
         '<div class="ttm-actions">',
           '<button class="ttm-btn" id="ttm-refresh" title="Обновить">' + SVG.refresh + '<span>Обновить</span></button>',
           '<button class="ttm-btn" id="ttm-clear" title="Очистить">' + SVG.trash + '<span>Очистить</span></button>',
@@ -66,6 +74,21 @@
       chrome.runtime.sendMessage({ type: 'TTM_CLEAR_TRACKS' }, () => {
         state.tracks = []; state.currentIdx = -1; renderTracks();
       });
+    };
+
+    const input = sectionEl.querySelector('#ttm-search-input');
+    const clearBtn = sectionEl.querySelector('#ttm-search-clear');
+    input.addEventListener('input', () => {
+      state.query = input.value;
+      sectionEl.classList.toggle('has-query', !!state.query);
+      renderTracks();
+    });
+    clearBtn.onclick = () => {
+      input.value = '';
+      state.query = '';
+      sectionEl.classList.remove('has-query');
+      input.focus();
+      renderTracks();
     };
   }
 
@@ -217,14 +240,31 @@
     }
   }
 
+  // Возвращает массив { track, idx }: idx - позиция в state.tracks (для playTrack).
+  function visibleTracks() {
+    const q = (state.query || '').trim().toLowerCase();
+    const all = state.tracks;
+    if (!q) return all.map((t, idx) => ({ track: t, idx }));
+    return all
+      .map((t, idx) => ({ track: t, idx }))
+      .filter(({ track }) => {
+        const title = (track.title || track.name || '').toLowerCase();
+        const author = (track.author || '').toLowerCase();
+        return title.includes(q) || author.includes(q);
+      });
+  }
+
   function renderTracks() {
     if (!gridEl) return;
-    const tracks = state.tracks;
-    countEl.textContent = tracks.length ? ' · ' + tracks.length : '';
-    sectionEl.classList.toggle('is-empty', tracks.length === 0);
-    emptyEl.textContent = tracks.length ? '' : 'Треков пока нет. Нажми «Обновить».';
+    const items = visibleTracks();
+    const total = state.tracks.length;
+    countEl.textContent = total ? ' · ' + total : '';
+    sectionEl.classList.toggle('is-empty', items.length === 0);
+    if (!total) emptyEl.textContent = 'Треков пока нет. Нажми «Обновить».';
+    else if (!items.length) emptyEl.textContent = 'Ничего не найдено по запросу «' + state.query + '».';
+    else emptyEl.textContent = '';
 
-    const need = tracks.length;
+    const need = items.length;
     while (gridEl.children.length < need) {
       const card = document.createElement('div');
       card.className = 'ttm-card';
@@ -242,7 +282,7 @@
 
     for (let i = 0; i < need; i++) {
       const card = gridEl.children[i];
-      const t = tracks[i];
+      const { track: t, idx } = items[i];
       const img = card.querySelector('img');
       const cover = t.cover || '';
       if (cover && img.getAttribute('src') !== cover) img.setAttribute('src', cover);
@@ -250,18 +290,18 @@
       // Умный заголовок: TikTok часто отдаёт "original sound" и имя автора как единственное осмысленное поле
       let title = (t.title || t.name || '').trim();
       const author = (t.author || '').trim();
-      if (!title || /^original sound$/i.test(title)) title = author || ('Трек ' + (i + 1));
+      if (!title || /^original sound$/i.test(title)) title = author || ('Трек ' + (idx + 1));
       card.querySelector('.ttm-title').textContent = title;
       // Автор - не дублируем, если совпадает с заголовком
       card.querySelector('.ttm-author').textContent = (author && author !== title) ? author : '';
-      const active = i === state.currentIdx;
+      const active = idx === state.currentIdx;
       card.classList.toggle('is-playing', active);
       const badge = card.querySelector('.ttm-play-badge');
       if (active && state.playing) badge.innerHTML = SVG.pause;
       else badge.innerHTML = SVG.play;
       card.onclick = () => {
-        if (i === state.currentIdx && !audio.paused) audio.pause();
-        else playTrack(i);
+        if (idx === state.currentIdx && !audio.paused) audio.pause();
+        else playTrack(idx);
       };
       const dl = card.querySelector('.ttm-dl');
       dl.onclick = (e) => {

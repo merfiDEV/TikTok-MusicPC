@@ -47,6 +47,48 @@
   color: rgba(255,255,255,.6); font-size: 13px; margin-left: 8px; font-weight: 400;
 }
 #ttm-section .ttm-actions { display: flex; gap: 8px; }
+
+/* Строка поиска */
+#ttm-section .ttm-search {
+  flex: 1;
+  max-width: 420px;
+  margin: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.04);
+  border-radius: 8px;
+  transition: border-color .15s ease, background .15s ease;
+}
+#ttm-section .ttm-search:focus-within {
+  border-color: rgba(254,44,85,.7);
+  background: rgba(255,255,255,.07);
+}
+#ttm-section .ttm-search-icon {
+  display: flex; align-items: center;
+  color: rgba(255,255,255,.5);
+}
+#ttm-section .ttm-search-icon svg { width: 16px; height: 16px; fill: currentColor; }
+#ttm-section .ttm-search input {
+  flex: 1;
+  border: none; outline: none; background: transparent;
+  color: #fff; font-size: 14px; min-width: 0;
+}
+#ttm-section .ttm-search input::placeholder { color: rgba(255,255,255,.4); }
+#ttm-section .ttm-search-clear {
+  display: none;
+  width: 22px; height: 22px;
+  align-items: center; justify-content: center;
+  border: none; background: transparent; cursor: pointer;
+  color: rgba(255,255,255,.55); border-radius: 50%;
+  transition: background .15s ease, color .15s ease;
+}
+#ttm-section .ttm-search-clear:hover { background: rgba(255,255,255,.1); color: #fff; }
+#ttm-section .ttm-search-clear svg { width: 14px; height: 14px; fill: currentColor; }
+#ttm-section.has-query .ttm-search-clear { display: flex; }
 #ttm-section .ttm-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px;
