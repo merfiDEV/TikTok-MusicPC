@@ -25,6 +25,12 @@
       "matches": ["https://www.tiktok.com/tiktokstudio/*"],
       "js": ["src/content-studio.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.tiktok.com/music/*"],
+      "js": ["src/content-music.js"],
+      "css": ["src/overlay.css"],
+      "run_at": "document_idle"
     }
   ],
   "icons": {
