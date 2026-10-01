@@ -32,6 +32,8 @@
   let countEl = null;
   let playerEl = null;
   let audio = null;
+  let dragging = false;   // перетаскивание ползунка прогресса
+  let rafId = null;       // requestAnimationFrame для плавного прогресса
 
   const fmtTime = (s) => {
     if (!isFinite(s) || s < 0) s = 0;
@@ -112,11 +114,50 @@
     };
 
     const bar = $('ttm-p-bar');
-    bar.addEventListener('click', (e) => {
-      const r = bar.getBoundingClientRect();
-      const p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-      if (audio.duration) audio.currentTime = p * audio.duration;
+
+    // Отрисовка позиции по значению в процентах (0..1)
+    const paintProgress = (p) => {
+      const pct = Math.max(0, Math.min(1, p)) * 100;
+      $('ttm-p-fill').style.width = pct + '%';
+      $('ttm-p-knob').style.left = pct + '%';
+    };
+
+    // Перемотка: плавное перетаскивание ползунка (pointer events) + клик.
+    const posFromEvent = (e) => {
+      const rect = bar.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    };
+    const seekTo = (p) => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = p * audio.duration;
+        $('ttm-p-cur').textContent = fmtTime(audio.currentTime);
+        paintProgress(p);
+      }
+    };
+
+    bar.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      bar.classList.add('is-dragging');
+      bar.setPointerCapture(e.pointerId);
+      const p = posFromEvent(e);
+      paintProgress(p);
+      $('ttm-p-cur').textContent = fmtTime((audio.duration || 0) * p);
+      e.preventDefault();
     });
+    bar.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const p = posFromEvent(e);
+      paintProgress(p);
+      $('ttm-p-cur').textContent = fmtTime((audio.duration || 0) * p);
+    });
+    const endDrag = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      bar.classList.remove('is-dragging');
+      seekTo(posFromEvent(e));
+    };
+    bar.addEventListener('pointerup', endDrag);
+    bar.addEventListener('pointercancel', endDrag);
 
     $('ttm-p-vol').addEventListener('input', (e) => {
       audio.volume = +e.target.value;
@@ -126,24 +167,54 @@
       state.playing = true;
       $('ttm-p-toggle').innerHTML = SVG.pause;
       renderTracks();
+      startProgressLoop();
     });
     audio.addEventListener('pause', () => {
       state.playing = false;
       $('ttm-p-toggle').innerHTML = SVG.play;
       renderTracks();
+      stopProgressLoop();
     });
-    audio.addEventListener('timeupdate', () => {
-      const d = audio.duration || 0;
-      const c = audio.currentTime || 0;
-      $('ttm-p-cur').textContent = fmtTime(c);
-      $('ttm-p-dur').textContent = fmtTime(d);
-      const pct = d ? (c / d) * 100 : 0;
-      $('ttm-p-fill').style.width = pct + '%';
-      $('ttm-p-knob').style.left = pct + '%';
+    audio.addEventListener('loadedmetadata', () => {
+      $('ttm-p-dur').textContent = fmtTime(audio.duration || 0);
     });
     audio.addEventListener('ended', () => {
+      stopProgressLoop();
       if (state.currentIdx + 1 < state.tracks.length) playTrack(state.currentIdx + 1);
     });
+  }
+
+  // Плавное обновление прогресса через requestAnimationFrame (вместо timeupdate).
+  function progressTick() {
+    if (!audio) { rafId = null; return; }
+    const d = audio.duration || 0;
+    const c = audio.currentTime || 0;
+    if (!dragging) {
+      const pct = d ? (c / d) * 100 : 0;
+      const fill = playerEl.querySelector('#ttm-p-fill');
+      const knob = playerEl.querySelector('#ttm-p-knob');
+      if (fill) fill.style.width = pct + '%';
+      if (knob) knob.style.left = pct + '%';
+      playerEl.querySelector('#ttm-p-cur').textContent = fmtTime(c);
+      playerEl.querySelector('#ttm-p-dur').textContent = fmtTime(d);
+    }
+    rafId = requestAnimationFrame(progressTick);
+  }
+  function startProgressLoop() {
+    if (rafId == null) rafId = requestAnimationFrame(progressTick);
+  }
+  function stopProgressLoop() {
+    if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
+    // финальный кадр после паузы/конца трека
+    if (audio && playerEl) {
+      const d = audio.duration || 0, c = audio.currentTime || 0;
+      const pct = d ? (c / d) * 100 : 0;
+      const fill = playerEl.querySelector('#ttm-p-fill');
+      const knob = playerEl.querySelector('#ttm-p-knob');
+      if (fill) fill.style.width = pct + '%';
+      if (knob) knob.style.left = pct + '%';
+      playerEl.querySelector('#ttm-p-cur').textContent = fmtTime(c);
+    }
   }
 
   function renderTracks() {

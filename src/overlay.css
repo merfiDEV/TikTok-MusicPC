@@ -223,6 +223,9 @@
   opacity: 0; transition: opacity .15s ease;
 }
 #ttm-player .ttm-p-bar:hover .ttm-p-knob { opacity: 1; }
+#ttm-player .ttm-p-bar.is-dragging .ttm-p-knob { opacity: 1; transform: translate(-50%, -50%) scale(1.4); }
+#ttm-player .ttm-p-bar.is-dragging { cursor: grabbing; }
+#ttm-player .ttm-p-bar { cursor: pointer; touch-action: none; }
 
 #ttm-player .ttm-p-vol {
   display: flex; align-items: center; gap: 8px;
