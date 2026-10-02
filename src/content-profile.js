@@ -23,6 +23,7 @@
   const state = {
     tracks: [],
     currentIdx: -1,
+    currentTrackKey: null,
     playing: false,
     showSection: false,
     query: ''     // строка поиска по названию/автору
@@ -37,6 +38,20 @@
   let audio = null;
   let dragging = false;   // перетаскивание ползунка прогресса
   let rafId = null;       // requestAnimationFrame для плавного прогресса
+  let toastTimer = null;
+
+  function showToast(message, type = 'info') {
+    let toast = document.querySelector('.ttm-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'ttm-toast';
+      document.body.appendChild(toast);
+    }
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.className = 'ttm-toast is-visible is-' + type;
+    toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3200);
+  }
 
   const fmtTime = (s) => {
     if (!isFinite(s) || s < 0) s = 0;
@@ -313,25 +328,57 @@
 
   async function downloadTrack(t, btn) {
     if (!t || !t.url) return;
+    if (btn.dataset.downloading === 'true') return;
+    btn.dataset.downloading = 'true';
     btn.classList.add('is-loading');
+    showToast('Скачивание началось…', 'info');
+    let objectUrl = null;
+    let downloadLink = null;
     try {
-      const res = await fetch(t.url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      let res;
+      try {
+        res = await fetch(t.url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const blob = await res.blob();
       const ext = /mpeg|mp3/i.test(blob.type) ? 'mp3' : 'm4a';
-      const base = (t.title || t.author || t.id || 'track').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80);
+      const base = (t.title || t.author || t.id || 'track')
+        .replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').trim().slice(0, 80) || 'track';
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      downloadLink = a;
+      objectUrl = URL.createObjectURL(blob);
+      a.href = objectUrl;
       a.download = base + '.' + ext;
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      showToast('Трек скачан: ' + base, 'success');
     } catch (err) {
       console.log('[TTM] download err', err);
       btn.classList.add('is-error');
+      let reason = 'неизвестная ошибка';
+      if (err.name === 'AbortError') {
+        reason = 'превышено время ожидания';
+      } else if (err.message && /^HTTP \d+/.test(err.message)) {
+        reason = 'сервер вернул ' + err.message.replace('HTTP ', 'HTTP ');
+      } else if (err instanceof TypeError) {
+        reason = 'нет доступа к аудио или ошибка сети';
+      } else if (err.message) {
+        reason = err.message;
+      }
+      const message = 'Не удалось скачать трек: ' + reason;
+      showToast(message, 'error');
       setTimeout(() => btn.classList.remove('is-error'), 1500);
     } finally {
+      if (objectUrl) {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      }
+      if (downloadLink) downloadLink.remove();
       btn.classList.remove('is-loading');
+      delete btn.dataset.downloading;
     }
   }
 
@@ -339,6 +386,7 @@
     if (i < 0 || i >= state.tracks.length) return;
     state.currentIdx = i;
     const t = state.tracks[i];
+    state.currentTrackKey = t.id != null ? 'id:' + t.id : 'url:' + t.url;
     buildPlayer();
     playerEl.classList.add('is-open');
     playerEl.querySelector('#ttm-p-title').textContent = t.title || t.name || 'Трек';
@@ -436,12 +484,6 @@
     return null;
   }
 
-  function pushTrack(t) {
-    chrome.runtime.sendMessage({ type: 'TTM_SAVE_MANUAL', track: t }, () => {
-      if (chrome.runtime.lastError) console.log('[TTM] save err', chrome.runtime.lastError.message);
-    });
-  }
-
   let fetching = false;
   async function fetchFavoriteMusic() {
     if (fetching) return;
@@ -451,7 +493,12 @@
     if (!secUid) { fetching = false; return; }
     try {
       let cursor = 0;
+      const seenCursors = new Set();
+      const tracks = [];
       for (let i = 0; i < 25; i++) {
+        const cursorKey = String(cursor);
+        if (seenCursors.has(cursorKey)) break;
+        seenCursors.add(cursorKey);
         const url = '/api/user/collect/music_list/?secUid=' + encodeURIComponent(secUid) +
           '&appId=1988&cursor=' + cursor + '&count=20&aid=1988';
         let data;
@@ -466,7 +513,7 @@
           const m = item.music || {};
           if (!m.playUrl) continue;
           const a = item.author || {};
-          pushTrack({
+          tracks.push({
             id: m.id,
             url: m.playUrl,
             title: m.title || '',
@@ -479,6 +526,13 @@
         cursor = data.cursor;
         if (!data.hasMore) break;
       }
+      if (tracks.length) {
+        chrome.runtime.sendMessage({ type: 'TTM_SAVE_MANY', tracks }, (res) => {
+          if (chrome.runtime.lastError || !res?.ok) {
+            console.log('[TTM] batch save err', chrome.runtime.lastError?.message || 'unknown error');
+          }
+        });
+      }
     } finally { fetching = false; }
   }
 
@@ -486,6 +540,12 @@
     chrome.runtime.sendMessage({ type: 'TTM_GET_TRACKS' }, (res) => {
       if (chrome.runtime.lastError) return;
       state.tracks = (res && res.tracks) || [];
+      if (state.currentTrackKey != null) {
+        state.currentIdx = state.tracks.findIndex((t) => {
+          const key = t.id != null ? 'id:' + t.id : 'url:' + t.url;
+          return key === state.currentTrackKey;
+        });
+      }
       renderTracks();
     });
   }

@@ -150,6 +150,7 @@
   const obs = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
+      if (btn) btn.remove();
       btn = null;
       setTimeout(() => { if (tryInject()) refresh(); }, 500);
     } else if (!btn || !document.contains(btn)) {

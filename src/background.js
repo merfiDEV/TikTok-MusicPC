@@ -106,15 +106,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg && msg.type === 'TTM_CLEAR_TRACKS') {
-    chrome.storage.local.set({ [STORE_KEY]: [] }).then(() => { notifyTabs(); sendResponse({ ok: true }); });
+    serialize(async () => {
+      await chrome.storage.local.set({ [STORE_KEY]: [] });
+      notifyTabs();
+    }).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   if (msg && msg.type === 'TTM_SAVE_MANY') {
-    saveMany(msg.tracks || []).then(() => sendResponse({ ok: true }));
+    saveMany(msg.tracks || []).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   if (msg && msg.type === 'TTM_SAVE_MANUAL') {
-    saveOne(msg.track).then(() => sendResponse({ ok: true }));
+    saveOne(msg.track).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
 });
