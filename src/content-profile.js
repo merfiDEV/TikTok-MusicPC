@@ -26,8 +26,54 @@
     currentTrackKey: null,
     playing: false,
     showSection: false,
-    query: ''     // строка поиска по названию/автору
+    query: '',    // строка поиска по названию/автору
+    volume: 1,
+    position: 0,
+    seekedToSaved: false  // true, когда позиция из хранилища уже применена к текущему треку
   };
+
+  // ---- сохранение состояния (громкость, текущий трек, позиция) ----
+  const PERSIST_KEY = 'ttm_player_state';
+  const PERSIST_THROTTLE_MS = 1000;
+  let persistTimer = null;
+  let pendingPersist = null;
+
+  function savePersistedState(immediate) {
+    const payload = {
+      trackKey: state.currentTrackKey,
+      position: state.position,
+      volume: state.volume
+    };
+    pendingPersist = payload;
+    if (immediate) {
+      if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
+      flushPersistedState();
+      return;
+    }
+    if (persistTimer) return;
+    persistTimer = setTimeout(flushPersistedState, PERSIST_THROTTLE_MS);
+  }
+
+  function flushPersistedState() {
+    persistTimer = null;
+    if (!pendingPersist) return;
+    const data = pendingPersist;
+    pendingPersist = null;
+    try {
+      chrome.storage.local.set({ [PERSIST_KEY]: data }, () => void chrome.runtime.lastError);
+    } catch (e) {}
+  }
+
+  function loadPersistedState() {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.local.get(PERSIST_KEY, (d) => {
+          if (chrome.runtime.lastError) { resolve(null); return; }
+          resolve(d && d[PERSIST_KEY] ? d[PERSIST_KEY] : null);
+        });
+      } catch (e) { resolve(null); }
+    });
+  }
 
   // ---- секция и плеер ----
   let sectionEl = null;
@@ -139,6 +185,7 @@
     audio = document.createElement('audio');
     audio.id = 'ttm-audio-native';
     audio.preload = 'metadata';
+    audio.volume = state.volume;
     document.body.appendChild(audio);
 
     const $ = (id) => playerEl.querySelector('#' + id);
@@ -197,8 +244,11 @@
     bar.addEventListener('pointerup', endDrag);
     bar.addEventListener('pointercancel', endDrag);
 
+    $('ttm-p-vol').value = String(state.volume);
     $('ttm-p-vol').addEventListener('input', (e) => {
       audio.volume = +e.target.value;
+      state.volume = audio.volume;
+      savePersistedState();
     });
 
     audio.addEventListener('play', () => {
@@ -206,23 +256,31 @@
       $('ttm-p-toggle').innerHTML = SVG.pause;
       renderTracks();
       startProgressLoop();
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+      updateMediaSessionPosition();
     });
     audio.addEventListener('pause', () => {
       state.playing = false;
       $('ttm-p-toggle').innerHTML = SVG.play;
       renderTracks();
       stopProgressLoop();
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      savePersistedState();
     });
     audio.addEventListener('loadedmetadata', () => {
       $('ttm-p-dur').textContent = fmtTime(audio.duration || 0);
+      updateMediaSessionPosition();
     });
     audio.addEventListener('ended', () => {
       stopProgressLoop();
       if (state.currentIdx + 1 < state.tracks.length) playTrack(state.currentIdx + 1);
     });
+
+    setupMediaSessionHandlers();
   }
 
   // Плавное обновление прогресса через requestAnimationFrame (вместо timeupdate).
+  let msTickCounter = 0;
   function progressTick() {
     if (!audio) { rafId = null; return; }
     const d = audio.duration || 0;
@@ -235,6 +293,13 @@
       if (knob) knob.style.left = pct + '%';
       playerEl.querySelector('#ttm-p-cur').textContent = fmtTime(c);
       playerEl.querySelector('#ttm-p-dur').textContent = fmtTime(d);
+      state.position = c;
+      savePersistedState();
+    }
+    // Media Session position state обновляем ~раз в секунду (60 fps → 60 кадров)
+    if (++msTickCounter >= 60) {
+      msTickCounter = 0;
+      updateMediaSessionPosition();
     }
     rafId = requestAnimationFrame(progressTick);
   }
@@ -382,6 +447,58 @@
     }
   }
 
+  // Media Session API: интеграция с ОС (клавиатура, наушники, медиа-панель Windows/macOS)
+  function updateMediaSession(t) {
+    if (!('mediaSession' in navigator) || !t) return;
+    const title = (t.title || t.name || '').trim() || 'Трек';
+    const author = (t.author || '').trim();
+    const artwork = t.cover
+      ? [{ src: t.cover, sizes: '512x512', type: 'image/jpeg' }]
+      : [];
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist: author || 'TikTok Music',
+        album: 'TikTok Избранное',
+        artwork
+      });
+    } catch (e) {}
+  }
+
+  function setupMediaSessionHandlers() {
+    if (!('mediaSession' in navigator)) return;
+    const ms = navigator.mediaSession;
+    const safe = (action, fn) => { try { ms.setActionHandler(action, fn); } catch (e) {} };
+    safe('play', () => { if (audio) audio.play().catch(() => {}); });
+    safe('pause', () => { if (audio) audio.pause(); });
+    safe('previoustrack', () => playTrack(state.currentIdx - 1));
+    safe('nexttrack', () => playTrack(state.currentIdx + 1));
+    safe('seekbackward', (d) => {
+      if (!audio) return;
+      audio.currentTime = Math.max(0, audio.currentTime - (d.seekOffset || 10));
+    });
+    safe('seekforward', (d) => {
+      if (!audio) return;
+      audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (d.seekOffset || 10));
+    });
+    safe('seekto', (d) => {
+      if (!audio || d.seekTime == null) return;
+      audio.currentTime = d.seekTime;
+    });
+  }
+
+  function updateMediaSessionPosition() {
+    if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+    if (!audio || !isFinite(audio.duration) || audio.duration <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: audio.duration,
+        playbackRate: audio.playbackRate || 1,
+        position: Math.min(audio.currentTime, audio.duration)
+      });
+    } catch (e) {}
+  }
+
   function playTrack(i) {
     if (i < 0 || i >= state.tracks.length) return;
     state.currentIdx = i;
@@ -391,8 +508,28 @@
     playerEl.classList.add('is-open');
     playerEl.querySelector('#ttm-p-title').textContent = t.title || t.name || 'Трек';
     playerEl.querySelector('#ttm-p-author').textContent = t.author || '';
-    if (audio.src !== t.url) audio.src = t.url;
+    if (audio.src !== t.url) {
+      audio.src = t.url;
+      state.seekedToSaved = false;
+      state.position = 0;
+    }
+    // Восстанавливаем позицию для сохранённого трека после метаданных
+    if (state.currentTrackKey && !state.seekedToSaved && state.position > 0.5) {
+      const target = state.position;
+      const onLoaded = () => {
+        audio.removeEventListener('loadedmetadata', onLoaded);
+        if (audio.duration && target < audio.duration - 1) {
+          audio.currentTime = target;
+        }
+        state.seekedToSaved = true;
+      };
+      audio.addEventListener('loadedmetadata', onLoaded);
+    } else {
+      state.seekedToSaved = true;
+    }
     audio.play().catch(() => {});
+    updateMediaSession(t);
+    savePersistedState(true);
     renderTracks();
   }
 
@@ -550,8 +687,62 @@
     });
   }
 
+  // Восстановление состояния (громкость, трек, позиция) при загрузке страницы.
+  // Трек загружается, но НЕ играет автоматически - браузер блокирует autoplay со звуком.
+  async function restorePlayerState() {
+    const saved = await loadPersistedState();
+    if (!saved) return;
+    if (typeof saved.volume === 'number' && saved.volume >= 0 && saved.volume <= 1) {
+      state.volume = saved.volume;
+      if (audio) audio.volume = state.volume;
+      if (playerEl) {
+        const vol = playerEl.querySelector('#ttm-p-vol');
+        if (vol) vol.value = String(state.volume);
+      }
+    }
+    if (typeof saved.position === 'number' && saved.position > 0) {
+      state.position = saved.position;
+    }
+    if (saved.trackKey && state.tracks.length) {
+      const idx = state.tracks.findIndex((t) => {
+        const key = t.id != null ? 'id:' + t.id : 'url:' + t.url;
+        return key === saved.trackKey;
+      });
+      if (idx >= 0) {
+        state.currentIdx = idx;
+        state.currentTrackKey = saved.trackKey;
+        // Подготовим плеер, но без autoplay: только метаданные + позиция.
+        const t = state.tracks[idx];
+        buildPlayer();
+        playerEl.classList.add('is-open');
+        playerEl.querySelector('#ttm-p-title').textContent = t.title || t.name || 'Трек';
+        playerEl.querySelector('#ttm-p-author').textContent = t.author || '';
+        if (audio.src !== t.url) audio.src = t.url;
+        updateMediaSession(t);
+        renderTracks();
+        // Позицию восстановим после метаданных (без play())
+        const target = state.position;
+        const onLoaded = () => {
+          audio.removeEventListener('loadedmetadata', onLoaded);
+          if (audio.duration && target < audio.duration - 1) {
+            audio.currentTime = target;
+          }
+          state.seekedToSaved = true;
+        };
+        audio.addEventListener('loadedmetadata', onLoaded);
+        updateMediaSessionPosition();
+      }
+    }
+  }
+
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg && msg.type === 'TTM_TRACKS_UPDATED') loadTracks();
+    if (msg && msg.type === 'TTM_TRIGGER_REFRESH') {
+      // Автообновление по alarm: только если мы на профиле (есть secUid).
+      if (/^\/@[^/]+(\/|$)/.test(location.pathname) && !fetching) {
+        fetchFavoriteMusic();
+      }
+    }
   });
 
   // ---- init: ждём появления таб-бара + следим за SPA-навигацией ----
@@ -561,6 +752,7 @@
     if (injectTab()) {
       clearInterval(timer);
       loadTracks();
+      restorePlayerState();
       fetchFavoriteMusic();
     } else if (tries > 60) {
       clearInterval(timer);

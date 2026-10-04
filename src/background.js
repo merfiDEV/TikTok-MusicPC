@@ -1,5 +1,7 @@
 // background.js - хранилище треков TikTok Music Overlay
 const STORE_KEY = 'ttm_tracks';
+const REFRESH_ALARM = 'ttm_refresh_urls';
+const REFRESH_PERIOD_MIN = 720; // 12 часов - playUrl живёт ~24 ч, обновляем с запасом
 
 async function notifyTabs() {
   try {
@@ -9,6 +11,36 @@ async function notifyTabs() {
     }
   } catch (e) {}
 }
+
+// Периодическое автообновление: шлём всем вкладкам профиля команду перезапросить
+// список у TikTok (playUrl подписанные, живут ~24 ч). Само обновление выполняет
+// content-profile.js, т.к. только у него есть доступ к DOM с secUid и к сессионным cookie.
+async function triggerRefresh() {
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://www.tiktok.com/@*' });
+    for (const tb of tabs) {
+      chrome.tabs.sendMessage(tb.id, { type: 'TTM_TRIGGER_REFRESH' }).catch(() => {});
+    }
+  } catch (e) {}
+}
+
+function ensureRefreshAlarm() {
+  try {
+    chrome.alarms.get(REFRESH_ALARM, (a) => {
+      if (chrome.runtime.lastError) return;
+      if (!a) {
+        chrome.alarms.create(REFRESH_ALARM, { periodInMinutes: REFRESH_PERIOD_MIN });
+      }
+    });
+  } catch (e) {}
+}
+
+chrome.runtime.onInstalled.addListener(() => ensureRefreshAlarm());
+chrome.runtime.onStartup.addListener(() => ensureRefreshAlarm());
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm && alarm.name === REFRESH_ALARM) triggerRefresh();
+});
 
 // Сериализация записи: гарантирует сохранение порядка треков.
 // Без этого параллельные saveOne делают read-modify-write гонкой и перетирают друг друга.
